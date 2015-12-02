@@ -18,7 +18,8 @@ The supported syntax is:
     #define ANSWER 42
     #define FOO "bar"
 
-**NOTE:** Only one level of substitution is performed, so the "value" of a `#define` must not reference another defines!
+**NOTE:** Only one level of substitution is performed, so the "value"
+of a `#define` must not reference other defines!
 
 ### Function-like macros
 
@@ -40,7 +41,7 @@ file. There's also no limit for the number of `#include`s in a source file.
 
     #include "my_definitions.i"
 
-**NOTE:** Recursive defines are not supported, so files that you `#include` in a source
+**NOTE:** Recursive includes are not supported, so files that you `#include` in a source
 file *cannot* themselves include other files!
 
 ## VCLPP Usage
@@ -58,7 +59,7 @@ Usage:
 
 Providing the `-j` or `--vcljunk` flag will cause the tool to add the frequently used
 VCL prologue/epilogue boilerplate for `enter/exit` sections, so you don't have to repeat that
-in every source file. Example:
+in every source file. Output example:
 
 <pre>
 .init_vf_all
