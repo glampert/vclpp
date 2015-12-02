@@ -4,6 +4,7 @@
 // File: vclpp_main.cpp
 // Author: Guilherme R. Lampert
 // Created on: 30/11/15
+//
 // Brief: A custom C-like preprocessor for combined use with the VCL tool and the PS2DEV SDK.
 //
 // This source code is released under the MIT license.
@@ -73,6 +74,9 @@ private:
 
     // Lines of code that didn't make into directives/macros (blank lines ignored).
     std::vector<std::string> codeLines;
+
+    // Whatever follows a #vuprog directive (source files only).
+    std::string vuProgName;
 
     // Used for error reporting only.
     std::string currentFileName;
@@ -191,6 +195,7 @@ private:
 
 public:
 
+    const std::string & getVuProgName () const { return vuProgName;  }
     const std::string & getCurrentFileName() const { return currentFileName;  }
     const std::vector<std::string> & getCodeLines() const { return codeLines; }
 
@@ -294,6 +299,10 @@ public:
             else if (tokens[0] == "#vuprog")
             {
                 foundProgStart = true;
+                if (tokens.size() > 1)
+                {
+                    vuProgName = tokens[1];
+                }
             }
             else if (tokens[0] == "#endvuprog")
             {
@@ -328,7 +337,115 @@ public:
 }; // class Preprocessor
 
 // ========================================================
-// isDefName/isMacroName:
+// split():
+// ========================================================
+
+static std::vector<std::string> split(const std::string & source, const char * delimiters)
+{
+    std::vector<std::string> tokenList;
+    if (!source.empty())
+    {
+        // Need the local copy since strtok() will modify the input...
+        std::string tempString{ source };
+        char * tk = std::strtok(const_cast<char *>(tempString.c_str()), delimiters);
+        while (tk != nullptr)
+        {
+            tokenList.emplace_back(tk);
+            tk = std::strtok(nullptr, delimiters);
+        }
+    }
+    return tokenList;
+}
+
+// ========================================================
+// fixupConstExpressions():
+// ========================================================
+
+static void fixupConstExpressions(std::string & line)
+{
+    if (line.find_first_of("+-/*") == std::string::npos)
+    {
+        return;
+    }
+
+    auto tokens = split(line, " \t");
+    std::string newLine;
+
+    //
+    // My ad hoc constant expression evaluation
+    // for basic arithmetical operators (+,-,/,*):
+    //
+    for (auto && tk : tokens)
+    {
+        const auto opIndex = tk.find_first_of("+-/*");
+        if (opIndex == std::string::npos)
+        {
+            newLine += tk; newLine += " ";
+            continue;
+        }
+
+        long start = opIndex - 1;
+        while (start > 0 &&
+               !std::isspace(tk[start]) && !std::ispunct(tk[start]))
+        {
+            --start;
+        }
+
+        long end = opIndex + 1;
+        while (end < static_cast<long>(tk.length()) &&
+               !std::isspace(tk[end]) && !std::ispunct(tk[end]))
+        {
+            ++end;
+        }
+
+        const auto strA = tk.substr(start, opIndex);
+        const auto strB = tk.substr(opIndex + 1, end - (opIndex + 1));
+
+        if (!strA.empty() && !strB.empty())
+        {
+            long result = 0;
+            char * endPtr = nullptr;
+
+            const long numA = std::strtol(strA.c_str(), &endPtr, 0);
+            if (endPtr == nullptr || endPtr == strA.c_str())
+            {
+                newLine += tk; newLine += " ";
+                continue;
+            }
+
+            const long numB = std::strtol(strB.c_str(), &endPtr, 0);
+            if (endPtr == nullptr || endPtr == strB.c_str())
+            {
+                newLine += tk; newLine += " ";
+                continue;
+            }
+
+            switch (tk[opIndex])
+            {
+            case '+' : result = numA + numB; break;
+            case '-' : result = numA - numB; break;
+            case '/' : result = numA / numB; break;
+            case '*' : result = numA * numB; break;
+            default  : throw std::runtime_error("Some inconsistency here...");
+            } // switch (tk[opIndex])
+
+            // Hexadecimal output:
+            //char buffer[256];
+            //std::snprintf(buffer, sizeof(buffer), "0x%lX", result);
+            //tk.replace(start, start + end, buffer);
+
+            // Decimal output:
+            tk.replace(start, start + end, std::to_string(result));
+        }
+
+        newLine += tk; newLine += " ";
+    }
+
+    line = std::move(newLine);
+}
+
+// ========================================================
+// isDefName()/isMacroName():
 // ========================================================
 
 static inline bool isDefName(const std::string & s, const long pos, const long len)
@@ -580,7 +697,8 @@ static void stripComments(std::string & s)
 // runPreprocessor():
 // ========================================================
 
-static void runPreprocessor(std::string srcFile, std::string destFile, const bool addVclJunk)
+static void runPreprocessor(std::string srcFile, std::string destFile,
+                            const bool addVclJunk, const bool fixCExpr)
 {
     // Source file is the root where substitutions take place.
     Preprocessor srcPP{ std::move(srcFile), false };
@@ -656,6 +774,11 @@ static void runPreprocessor(std::string srcFile, std::string destFile, const boo
         throw std::runtime_error("Can't open output file.");
     }
 
+    if (!srcPP.getVuProgName().empty())
+    {
+        outFile << "\n.name " << srcPP.getVuProgName() << "\n";
+    }
+
     if (addVclJunk)
     {
         writeVclPrologue(outFile);
@@ -666,6 +789,11 @@ static void runPreprocessor(std::string srcFile, std::string destFile, const boo
         stripComments(line);
         if (!isBlank(line))
         {
+            if (fixCExpr)
+            {
+                // Resolve exprs like 1+2 resulting from #define replacement.
+                fixupConstExpressions(line);
+            }
             outFile << line << "\n";
         }
     }
@@ -705,6 +833,7 @@ static void printHelpText(const char * progName)
         << " Options are:\n"
         << "  -h, --help     Prints this message and exits.\n"
         << "  -j, --vcljunk  Adds the standard VCL prologue/epilogue junk to the output.\n"
+        << "  -x, --fixcexpr Tries to resolve constant expressions involving literals, like 1+2.\n"
         << "\n"
         << "Created by Guilherme R. Lampert, " << __DATE__ << ".\n";
 }
@@ -749,26 +878,30 @@ int main(int argc, const char * argv[])
         outFileName = removeFilenameExtension(inFileName) + ".vsm";
     }
 
+    // Additional flags:
     bool addVclJunk = false;
+    bool fixCExpr   = false;
+
     if (argc >= 3)
     {
-        if (argc == 3 &&
-            (std::strcmp(argv[2], "-j") == 0 ||
-             std::strcmp(argv[2], "--vcljunk") == 0))
+        auto hasFlag = [](const char * test, const char * shortForm, const char * longForm)
         {
-            addVclJunk = true;
-        }
-        else if (argc >= 4 &&
-                 (std::strcmp(argv[3], "-j") == 0 ||
-                  std::strcmp(argv[3], "--vcljunk") == 0))
+            return std::strcmp(test, shortForm) == 0 ||
+                   std::strcmp(test, longForm)  == 0;
+        };
+        for (int i = 2; i < argc; ++i)
         {
-            addVclJunk = true;
+            if (argv[i][0] == '-')
+            {
+                if (hasFlag(argv[i], "-j", "--vcljunk"))  { addVclJunk = true; }
+                if (hasFlag(argv[i], "-x", "--fixcexpr")) { fixCExpr   = true; }
+            }
         }
     }
 
     try
     {
-        runPreprocessor(inFileName, outFileName, addVclJunk);
+        runPreprocessor(inFileName, outFileName, addVclJunk, fixCExpr);
         return EXIT_SUCCESS;
     }
     catch (...)
