@@ -426,7 +426,7 @@ static void fixupConstExpressions(std::string & line)
             case '-' : result = numA - numB; break;
             case '/' : result = numA / numB; break;
             case '*' : result = numA * numB; break;
-            default  : throw std::runtime_error("Some inconsistency here...");
+            default  : throw std::runtime_error("Unable to perform const expr resolution. Run again without '-x'");
             } // switch (tk[opIndex])
 
             // Hexadecimal output:
@@ -904,8 +904,9 @@ int main(int argc, const char * argv[])
         runPreprocessor(inFileName, outFileName, addVclJunk, fixCExpr);
         return EXIT_SUCCESS;
     }
-    catch (...)
+    catch (std::exception & e)
     {
+        std::cerr << "Unhandled exception: " << e.what() << std::endl;
         std::cerr << "Terminating due to previous error(s)..." << std::endl;
         return EXIT_FAILURE;
     }

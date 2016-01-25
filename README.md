@@ -55,6 +55,7 @@ Usage:
  Options are:
   -h, --help     Prints this message and exits.
   -j, --vcljunk  Adds the standard VCL prologue/epilogue junk to the output.
+  -x, --fixcexpr Tries to resolve constant expressions involving literals, like 1+2.
 </pre>
 
 Providing the `-j` or `--vcljunk` flag will cause the tool to add the frequently used
