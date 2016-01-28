@@ -658,9 +658,26 @@ static std::vector<std::string> resolveMacos(const std::vector<std::string> & co
 
 static void writeVclPrologue(std::ofstream & outFile)
 {
+    //
+    //outFile << ".init_vi_all\n";
+    //
+    // init_vi_all causes problems when using clipping
+    // instructions. The VU1 clipw and FC flag helpers
+    // require using register VI01 directly and OpenVCL
+    // doesn't seem to respect our uses of VI01 when
+    // init_vi_all is set, reusing it for other variables,
+    // which ends up causing the clip instructions to
+    // override other data. Explicitly specifying which
+    // registers OpenVCL can use fixes the problem by
+    // leaving VI01 out of the list. You'll get one less
+    // register to work with if you're not doing clipping,
+    // but the vast majority of programs will, and you
+    // still have 13 regs to play with, so this should
+    // be okay.
+    //
     outFile << "\n";
+    outFile << ".init_vi VI02, VI03, VI04, VI05, VI06, VI07, VI08, VI09, VI10, VI11, VI12, VI13, VI14\n";
     outFile << ".init_vf_all\n";
-    outFile << ".init_vi_all\n";
     outFile << ".syntax new\n";
     outFile << ".vu\n";
     outFile << "\n";
