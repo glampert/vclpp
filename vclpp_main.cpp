@@ -17,6 +17,7 @@
 //
 #include <cctype>
 #include <cstdlib>
+#include <cstring> // added for linux support
 #include <algorithm>
 #include <fstream>
 #include <iostream>
@@ -26,6 +27,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include <iterator> // added for linux support
 
 // ========================================================
 // Helpers:
