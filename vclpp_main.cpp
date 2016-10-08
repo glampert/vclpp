@@ -206,7 +206,7 @@ public:
         , currentLineNum  { 0 }
         , isIncludeFile   { isInclude }
     {
-        sourceFile.exceptions(0); // Don't throw on error. We use error().
+        sourceFile.exceptions(std::ifstream::goodbit); // Don't throw on error. We use error().
         sourceFile.open(currentFileName);
 
         if (!sourceFile.is_open() || !sourceFile.good())
