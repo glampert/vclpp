@@ -59,6 +59,38 @@ static inline bool isBlank(const std::string & s)
 }
 
 // ========================================================
+// stripComments():
+// ========================================================
+
+static void stripComments(std::string & s)
+{
+    // The only type of comment we handle is ';'. A string may hold several
+    // lines joined with '\n' (macro expansions), so erase each comment only
+    // up to the end of its own line, never past it. Whitespace preceding a
+    // comment is trimmed too, so "#endmacro ; note" still compares equal
+    // to "#endmacro" after stripping.
+    std::size_t pos = s.find(';');
+    while (pos != std::string::npos)
+    {
+        std::size_t start = pos;
+        while (start > 0 && (s[start - 1] == ' ' || s[start - 1] == '\t'))
+        {
+            --start;
+        }
+
+        const std::size_t eol = s.find('\n', pos);
+        if (eol == std::string::npos)
+        {
+            s.erase(start);
+            break;
+        }
+
+        s.erase(start, eol - start);
+        pos = s.find(';', start);
+    }
+}
+
+// ========================================================
 // class Preprocessor:
 // ========================================================
 
@@ -185,7 +217,7 @@ private:
         }
         else
         {
-            if (tokens.size() > 2 && tokens[2][0] != ';')
+            if (tokens.size() > 2) // Comments were already stripped, so this is real text.
             {
                 error("More text follows macro declaration. "
                       "Add a ':' right after the macro name to define a param list!");
@@ -244,6 +276,11 @@ public:
         {
             ++currentLineNum;
 
+            // Strip ';' comments right away so they never leak into macro
+            // bodies, #define values or the whitespace-tokenized argument
+            // parsing of directives and macro invocations further down.
+            stripComments(line);
+
             if (isBlank(line))
             {
                 continue;
@@ -269,13 +306,11 @@ public:
                 continue;
             }
 
-            // Not a define/macro and not resolving a macro block, ignore.
+            // Not a define/macro and not resolving a macro block, plain code
+            // line. Pure comment lines are already blank at this point.
             if (line[0] != '#')
             {
-                if (line[0] != ';') // Don't bother adding pure comment lines.
-                {
-                    codeLines.emplace_back(std::move(line));
-                }
+                codeLines.emplace_back(std::move(line));
                 continue;
             }
 
@@ -694,22 +729,6 @@ static void writeVclEpilogue(std::ofstream & outFile)
     outFile << "--exit\n";
     outFile << "--endexit\n";
     outFile << "\n";
-}
-
-// ========================================================
-// stripComments():
-// ========================================================
-
-static void stripComments(std::string & s)
-{
-    // The only type of comment we handle is ';'
-    const auto pos = s.find_first_of(';');
-    if (pos == std::string::npos)
-    {
-        return; // No comments in this line.
-    }
-    // Remove everything after the comment start.
-    s.erase(pos, s.length());
 }
 
 // ========================================================
