@@ -1,0 +1,4 @@
+    iaddiu vi01, vi00, 1
+    iaddiu vi02, vi00, 2
+    iaddiu vi03, vi00, 3
+    iaddiu vi04, vi00, 4

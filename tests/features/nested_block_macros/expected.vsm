@@ -1,0 +1,17 @@
+lFirstStart:
+    iaddiu iTagPtr, iBase, 2
+    lqi fTag0, (iTagPtr++)
+    sqi fTag0, 0(iOutPtr)
+    lqi fTag1, (iTagPtr++)
+    sqi fTag1, 2 - 1(iOutPtr)
+lFirstCopied:
+    ibne iCount, vi00, lFirstStart
+
+lSecondStart:
+    iaddiu iTagPtr, iBase, 2
+    lqi fTag0, (iTagPtr++)
+    sqi fTag0, 0(iOutPtr)
+    lqi fTag1, (iTagPtr++)
+    sqi fTag1, 2 - 1(iOutPtr)
+lSecondCopied:
+    ibne iCount, vi00, lSecondStart

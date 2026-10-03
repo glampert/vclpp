@@ -1,0 +1,3 @@
+#vuprog
+    Foo{ }
+#endvuprog

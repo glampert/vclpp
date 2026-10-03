@@ -1,0 +1,2 @@
+input.vcl:1:19: error: pasting '+' and '-' does not give a valid token
+input.vcl:3:5: note: in expansion of macro 'P'

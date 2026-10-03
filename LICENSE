@@ -20,3 +20,11 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
+
+--------------------------------------------------------------------------------
+
+vclpp is built with parse-utils (https://github.com/glampert/parse-utils),
+included as a git submodule under external/parse-utils, which is released
+under the GNU General Public License version 3. The MIT license above covers
+the files of this repository outside external/. Since a vclpp binary includes
+parse-utils, distributing one is subject to the terms of the GPLv3.

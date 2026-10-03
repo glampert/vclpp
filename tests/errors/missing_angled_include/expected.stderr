@@ -1,0 +1,2 @@
+input.vcl:1:10: error: cannot find include file 'nope.i'
+note: <file> is only looked for in the -I directories, and there are none

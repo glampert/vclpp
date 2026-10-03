@@ -1,0 +1,13 @@
+    lq fA, 1010(vi00)
+    lq fB, 1021(vi00)
+    iaddi vi01, vi01, -3
+    iaddiu vi01, vi00, a - 1 - 2
+    iaddiu vi01, vi00, 1 + 2 * a
+    iaddiu vi01, vi00, 9
+    iaddiu vi01, vi00, 17
+    iaddiu vi01, vi00, 1
+    iaddiu vi01, vi00, 17
+    loi 1.5 + 1
+    lq fC, 14(vi02)
+    lq.xyz fE, 8(vi01)
+    --barrier

@@ -1,0 +1,2 @@
+input.vcl:1:10: error: cannot find include file 'nope.i'
+note: not found at 'nope.i'

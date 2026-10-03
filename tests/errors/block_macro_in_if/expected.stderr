@@ -1,0 +1,1 @@
+input.vcl:4:5: error: block macro 'B' cannot be invoked in an #if expression

@@ -1,0 +1,1 @@
+input.vcl:1:5: error: #if: floating-point number '1.5' in an integer expression

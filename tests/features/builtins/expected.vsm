@@ -1,0 +1,6 @@
+    iaddiu vi01, vi00, 3
+    iaddiu vi02, vi00, 5
+    loi "input.vcl"
+    iaddiu vi03, vi00, 0
+    iaddiu vi03, vi00, 1
+    iaddiu vi04, vi00, 2

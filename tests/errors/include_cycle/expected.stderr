@@ -1,0 +1,10 @@
+In file included from input.vcl:1,
+                 from input.vcl:1,
+                 from input.vcl:1,
+                 from input.vcl:1,
+                 [191 more],
+                 from input.vcl:1,
+                 from input.vcl:1,
+                 from input.vcl:1,
+                 from input.vcl:1:
+input.vcl:1:10: error: #include nested 200 levels deep: does a file include itself?

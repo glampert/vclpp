@@ -1,0 +1,9 @@
+
+.name VU1Prog_Includes
+
+    iaddiu iTagPtr, iBase, 4
+    isw.x  iTagPtr, 1008(vi00)
+
+    ibeq   iNloop, vi00, lEmpty
+    xgkick iKickAt
+    lEmpty:

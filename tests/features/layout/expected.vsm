@@ -1,0 +1,18 @@
+    iaddiu vi01, vi00, 1 + 2
+lStart:
+
+    lq vf01, 0(vi00)
+    sq vf01, 1(vi00)
+
+nop
+
+    lq vf02, 0(vi00)
+    sq vf02, 1(vi00)
+
+    lq vf03, 0(vi00)
+    sq vf03, 1(vi00)
+
+    lq vf04, 0(vi00)
+    sq vf04, 1(vi00)
+
+	iaddiu vi02, vi00, 2

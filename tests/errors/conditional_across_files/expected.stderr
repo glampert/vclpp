@@ -1,0 +1,2 @@
+In file included from input.vcl:1:
+opens.i:1:2: error: unterminated #if: missing #endif

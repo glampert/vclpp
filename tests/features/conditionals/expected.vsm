@@ -1,0 +1,4 @@
+    iaddiu vi01, vi00, 1
+    lq fLight, 0(vi00)
+    iaddiu vi02, vi00, 2
+    iaddiu vi03, vi00, 3

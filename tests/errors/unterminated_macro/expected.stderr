@@ -1,0 +1,1 @@
+input.vcl:1:8: error: unterminated #macro 'M': missing #endmacro

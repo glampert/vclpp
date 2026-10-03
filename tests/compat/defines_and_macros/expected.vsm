@@ -1,0 +1,32 @@
+
+.name VU1Prog_Compat
+
+.init_vi VI02, VI03, VI04, VI05, VI06, VI07, VI08, VI09, VI10, VI11, VI12, VI13, VI14
+.init_vf_all
+.syntax new
+.vu
+
+--enter
+--endenter
+
+    lq fA, 0(vi00)
+    lq fB, 1(vi00)
+
+    iaddiu iPtr, vi00, 8
+
+    mul  acc,           fMVP[0], fVert[x]
+    madd acc,           fMVP[1], fVert[y]
+    madd acc,           fMVP[2], fVert[z]
+    madd fVert, fMVP[3], fVert[w]
+
+    mul  acc,           fMVP[0], fVert2[x]
+    madd acc,           fMVP[1], fVert2[y]
+    madd acc,           fMVP[2], fVert2[z]
+    madd fVert2, fMVP[3], fVert2[w]
+
+    iaddiu iPtr, iPtr, 2
+    loi "bar"
+
+--exit
+--endexit
+

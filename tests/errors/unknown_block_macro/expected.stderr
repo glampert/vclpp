@@ -1,0 +1,1 @@
+input.vcl:2:5: error: 'Foo' is not a block macro: no '#macro Foo' has been seen

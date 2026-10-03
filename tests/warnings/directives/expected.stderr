@@ -1,0 +1,5 @@
+input.vcl:1:2: warning: #warning careful now
+input.vcl:2:2: warning: ignoring unknown '#pragma pack(4)'
+input.vcl:3:10: warning: extra tokens at the end of the #ifdef directive
+input.vcl:4:8: warning: extra tokens at the end of the #endif directive
+input.vcl:5:16: warning: extra tokens at the end of the #include directive

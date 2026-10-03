@@ -1,0 +1,2 @@
+    iaddiu vi01, vi00, 40+2
+    iaddiu vi02, vi00, 0

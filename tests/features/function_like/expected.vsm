@@ -1,0 +1,9 @@
+    lq fA, ((1) + (2))(vi00)
+    lq fB, ((((1) + (2))) + ((3, 4)))(vi00)
+    loi "a \"q\" b"
+    iaddiu vi01, vi00, 1
+    iaddiu vi01, vi00, 7
+    iaddiu vi02, vi00, 3
+    nop
+    iaddiu vi01, vi00, ADDR
+    max vf01, vf01, vf02

@@ -1,0 +1,2 @@
+input.vcl:5:5: error: argument 2 ('y') of block macro 'M' is empty
+input.vcl:1:8: note: 'M' is defined here

@@ -1,0 +1,1 @@
+input.vcl:1:2: error: #if: trailing operator in preprocessor expression

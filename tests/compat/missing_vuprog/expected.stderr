@@ -1,0 +1,2 @@
+input.vcl: warning: program start directive '#vuprog' was not found
+input.vcl: warning: program end directive '#endvuprog' was not found

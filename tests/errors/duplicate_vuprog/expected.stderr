@@ -1,0 +1,2 @@
+input.vcl:2:2: error: #vuprog appears twice
+input.vcl:1:2: note: the first one is here

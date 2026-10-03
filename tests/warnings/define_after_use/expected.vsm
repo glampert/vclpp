@@ -1,0 +1,2 @@
+    iaddiu vi01, vi00, kLate
+    iaddiu vi01, vi00, 5

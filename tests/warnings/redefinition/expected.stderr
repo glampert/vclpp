@@ -1,0 +1,2 @@
+input.vcl:3:9: warning: 'A' redefined
+input.vcl:2:9: note: the previous definition is here

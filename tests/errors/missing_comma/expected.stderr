@@ -1,0 +1,1 @@
+input.vcl:1:13: error: missing comma after parameter 'a' of macro 'M'

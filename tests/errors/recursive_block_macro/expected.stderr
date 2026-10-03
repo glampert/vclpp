@@ -1,0 +1,3 @@
+input.vcl:5:5: error: recursive invocation of block macro 'A'
+input.vcl:2:5: note: in expansion of macro 'B'
+input.vcl:8:5: note: in expansion of macro 'A'

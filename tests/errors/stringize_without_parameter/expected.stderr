@@ -1,0 +1,1 @@
+input.vcl:1:14: error: '#' is not followed by a parameter of macro 'F'

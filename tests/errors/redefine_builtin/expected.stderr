@@ -1,0 +1,1 @@
+input.vcl:1:9: error: cannot redefine built-in macro '__LINE__'

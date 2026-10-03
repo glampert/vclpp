@@ -1,0 +1,1 @@
+#define kLocal 1

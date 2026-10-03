@@ -1,0 +1,1 @@
+input.vcl:2:5: error: 'FOO' is not defined, evaluates to 0 [-Wundef]

@@ -1,0 +1,1 @@
+input.vcl:2:1: error: preprocessor directive '#define' inside #macro 'M'

@@ -1,0 +1,2 @@
+    iaddiu iWin, iBase, (189 + 45 * 3 + 7)
+    iaddiu iX, vi00, SELF + 1

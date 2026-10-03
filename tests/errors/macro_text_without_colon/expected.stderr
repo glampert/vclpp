@@ -1,0 +1,1 @@
+input.vcl:1:10: error: unexpected text after the name of macro 'M'; a parameter list starts with ':', as in '#macro M: param1, param2'

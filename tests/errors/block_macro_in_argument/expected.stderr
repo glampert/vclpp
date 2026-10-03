@@ -1,0 +1,1 @@
+input.vcl:6:7: error: block macro 'B' cannot be invoked in a macro argument
