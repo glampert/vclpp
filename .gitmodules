@@ -1,0 +1,3 @@
+[submodule "external/parse-utils"]
+	path = external/parse-utils
+	url = https://github.com/glampert/parse-utils.git
