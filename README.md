@@ -162,6 +162,9 @@ VCLPP 2 preprocesses VCLPP 1 sources as VCLPP 1 did, with these differences:
 - `-x` folds whole expressions correctly; VCLPP 1 only handled `a+b` written without spaces.
 - The long form of `-j` is now `--vcl-boilerplate`.
 - Two macro expansions in a row are separated by one blank line, not two.
+- Output lines end in a plain LF, with no trailing whitespace; VCLPP 1 kept the CRs of a source
+  with CRLF line endings. Macros can be defined in such a source too, where VCLPP 1 reported
+  their `#endmacro` as a directive inside the macro.
 
 ## License
 

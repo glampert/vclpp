@@ -176,6 +176,16 @@ std::vector<note> diagnostics::expansion_notes(const pp_token & token)
 namespace
 {
 
+// parse-utils ends most of its messages with a '!'.
+std::string without_exclamation(std::string message)
+{
+    if (message.ends_with('!'))
+    {
+        message.pop_back();
+    }
+    return message;
+}
+
 class parse_utils_callbacks final : public lexer::error_callbacks
 {
 public:
@@ -188,23 +198,23 @@ public:
 
     void error_at(const std::string &, const std::uint32_t line_num, const std::string & message, bool) override
     {
-        throw parse_utils_error{ line_num, message };
+        throw parse_utils_error{ line_num, without_exclamation(message) };
     }
 
     void warning_at(const std::string &, const std::uint32_t line_num, const std::string & message) override
     {
-        m_diags.warning(m_fixed_location.value_or(source_location{ m_file_index, line_num, 0 }), message);
+        m_diags.warning(m_fixed_location.value_or(source_location{ m_file_index, line_num, 0 }), without_exclamation(message));
     }
 
     // Only the default error_at()/warning_at() call these.
     void error(const std::string & message, bool) override
     {
-        throw parse_utils_error{ 0, message };
+        throw parse_utils_error{ 0, without_exclamation(message) };
     }
 
     void warning(const std::string & message) override
     {
-        m_diags.warning(message);
+        m_diags.warning(without_exclamation(message));
     }
 
 private:

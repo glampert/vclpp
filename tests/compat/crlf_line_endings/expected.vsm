@@ -1,0 +1,6 @@
+
+.name VU1Prog_CrlfLineEndings
+
+    lq     fA, 8(vi00)
+
+    iaddiu iPtr, vi00, 8

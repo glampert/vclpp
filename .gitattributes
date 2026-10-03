@@ -1,0 +1,2 @@
+# Line endings are what this test is about: never convert them.
+tests/compat/crlf_line_endings/input.vcl -text

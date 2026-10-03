@@ -1,0 +1,11 @@
+
+.name VU1Prog_StrayCharacters
+
+    ibeq   vi01, vi00, QSL1@
+    mul    fOut, fIn, i
+QSL1@:
+    b      fIn@end
+
+    loi    @here
+    move   `name`, vf00
+    move   fé, vf00

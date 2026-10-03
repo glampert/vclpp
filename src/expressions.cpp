@@ -194,13 +194,7 @@ std::int64_t expression_evaluator::evaluate(const std::span<const pp_token> toke
     }
     catch (const parse_utils_error & error)
     {
-        // parse-utils ends its messages with a '!'.
-        std::string message = error.message;
-        if (message.ends_with('!'))
-        {
-            message.pop_back();
-        }
-        m_diags.error(where, prefix + message);
+        m_diags.error(where, prefix + error.message);
     }
 
     if (!evaluated)

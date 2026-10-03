@@ -22,9 +22,12 @@ namespace
 
 // ';' comments as well as C and C++ ones, and every string kept exactly as written:
 // tokens are printed back by their spelling, never by the lexer's reading of them.
-constexpr std::uint32_t k_lexer_flags = lexer::flags::semicolon_comments |
-                                        lexer::flags::no_string_concat   |
-                                        lexer::flags::no_string_escape_chars;
+// A character no token starts with, such as the '@' some VCL labels end in, is a
+// token of its own, as in C, so it passes through unchanged.
+constexpr std::uint32_t k_lexer_flags = lexer::flags::semicolon_comments     |
+                                        lexer::flags::no_string_concat       |
+                                        lexer::flags::no_string_escape_chars |
+                                        lexer::flags::allow_unknown_punctuation;
 
 token_kind kind_of(const lexer::token & tok)
 {
