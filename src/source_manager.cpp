@@ -104,7 +104,7 @@ void source_manager::mark_include_once(const std::uint32_t file_index)
 
 bool source_manager::is_include_once(const fs::path & path) const
 {
-    return m_include_once.contains(file_identity(path));
+    return m_include_once.count(file_identity(path)) != 0;
 }
 
 std::string source_manager::file_identity(const fs::path & path)

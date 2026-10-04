@@ -2,7 +2,7 @@
 # VCLPP
 
 VCLPP, a C-like preprocessor for the PS2 [Vector Command Line (VCL)](https://github.com/jsvennevid/openvcl)
-tool, written in C++20.
+tool, written in C++17.
 
 VCL uses GNU GASP by default for source file preprocessing before running its instruction scheduler.
 Unfortunately, GASP has become deprecated and is increasingly harder to find a good build
@@ -21,7 +21,7 @@ in an existing clone. Then:
     make        # builds the vclpp binary
     make test   # builds it and runs the tests in tests/
 
-Any C++20 compiler will do. `CXX` and `BIN_TARGET` can be set on the `make` command line.
+It needs a C++17 compiler. `CXX` and `BIN_TARGET` can be set on the `make` command line.
 
 ## Syntax
 

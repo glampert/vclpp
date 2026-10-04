@@ -153,14 +153,15 @@ expression_evaluator::expression_evaluator(diagnostics & diags)
 {
 }
 
-std::int64_t expression_evaluator::evaluate(const std::span<const pp_token> tokens, const pp_token & where,
+std::int64_t expression_evaluator::evaluate(const pp_token * const tokens, const std::size_t count, const pp_token & where,
                                             const std::string_view context)
 {
     const std::string prefix = std::string{ context } + ": ";
 
     std::string text;
-    for (const pp_token & token : tokens)
+    for (std::size_t i = 0; i < count; ++i)
     {
+        const pp_token & token = tokens[i];
         if (token.kind == token_kind::number && token.is_float)
         {
             m_diags.error(token, prefix + "floating-point number '" + token.text + "' in an integer expression");
@@ -242,8 +243,7 @@ void fold_constant_expressions(std::vector<pp_token> & line, expression_evaluato
             }
         }
 
-        const std::span<const pp_token> expression{ line.data() + start, *end - start };
-        const std::int64_t value = evaluator.evaluate(expression, first, "constant expression");
+        const std::int64_t value = evaluator.evaluate(line.data() + start, *end - start, first, "constant expression");
 
         pp_token folded    = first;
         folded.kind        = token_kind::number;

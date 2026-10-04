@@ -695,7 +695,7 @@ bool engine::evaluate_condition(const std::vector<pp_token> & line)
         token = number_token(0, token);
     }
 
-    return m_evaluator.evaluate(expanded, directive, "#" + directive.text) != 0;
+    return m_evaluator.evaluate(expanded.data(), expanded.size(), directive, "#" + directive.text) != 0;
 }
 
 void engine::check_macro_name(const pp_token & name, const bool undefining)

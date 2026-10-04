@@ -12,8 +12,8 @@
 #include "tokenizer.hpp"
 #include "preprocessor.hpp"
 
+#include <cstddef>
 #include <cstdint>
-#include <span>
 #include <string_view>
 #include <vector>
 
@@ -30,9 +30,9 @@ public:
     explicit expression_evaluator(diagnostics & diags);
 
     // Evaluates an expression made of integer numbers, operators and parentheses, e.g.
-    // what is left of an #if line once its macros are expanded. Errors are reported at
-    // 'where', prefixed with 'context'.
-    std::int64_t evaluate(std::span<const pp_token> tokens, const pp_token & where, std::string_view context);
+    // what is left of an #if line once its macros are expanded: the 'count' tokens at
+    // 'tokens'. Errors are reported at 'where', prefixed with 'context'.
+    std::int64_t evaluate(const pp_token * tokens, std::size_t count, const pp_token & where, std::string_view context);
 
 private:
     diagnostics &  m_diags;

@@ -7,7 +7,7 @@
 BIN_TARGET  = vclpp
 PARSE_UTILS = external/parse-utils
 SRC_FILES   = $(wildcard src/*.cpp)
-CXXSTD      = -std=c++20
+CXXSTD      = -std=c++17
 CXXFLAGS    = -O2 -Wall -Wextra -pedantic
 
 all: $(PARSE_UTILS)/lexer.hpp

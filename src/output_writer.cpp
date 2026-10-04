@@ -51,7 +51,7 @@ constexpr std::string_view k_vcl_epilogue =
 
 bool ends_with_blank_line(const std::string & text)
 {
-    return text.ends_with("\n\n") || text == "\n";
+    return (text.size() >= 2 && text.compare(text.size() - 2, 2, "\n\n") == 0) || text == "\n";
 }
 
 } // namespace

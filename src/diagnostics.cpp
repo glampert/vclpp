@@ -179,7 +179,7 @@ namespace
 // parse-utils ends most of its messages with a '!'.
 std::string without_exclamation(std::string message)
 {
-    if (message.ends_with('!'))
+    if (!message.empty() && message.back() == '!')
     {
         message.pop_back();
     }

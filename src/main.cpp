@@ -122,7 +122,7 @@ std::optional<int> parse_command_line(const int argc, const char * const argv[],
         {
             opts.werror = true;
         }
-        else if (arg.starts_with("-I"))
+        else if (arg.substr(0, 2) == "-I")
         {
             const std::optional<std::string> dir = option_value("-I");
             if (!dir.has_value() || dir->empty())
@@ -131,7 +131,7 @@ std::optional<int> parse_command_line(const int argc, const char * const argv[],
             }
             opts.include_dirs.push_back(*dir);
         }
-        else if (arg.starts_with("-D"))
+        else if (arg.substr(0, 2) == "-D")
         {
             const std::optional<std::string> definition = option_value("-D");
             if (!definition.has_value())

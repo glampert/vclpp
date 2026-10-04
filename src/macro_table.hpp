@@ -14,10 +14,10 @@
 
 #include <cstdint>
 #include <functional>
+#include <map>
 #include <optional>
 #include <string>
 #include <string_view>
-#include <unordered_map>
 #include <vector>
 
 namespace vclpp
@@ -66,14 +66,9 @@ public:
     static bool is_builtin_name(std::string_view name);
 
 private:
-    struct string_hash final
-    {
-        using is_transparent = void;
-        std::size_t operator()(const std::string_view s) const noexcept { return std::hash<std::string_view>{}(s); }
-    };
-
+    // std::less<> lets these be searched with a string_view, without making a string.
     template<typename T>
-    using string_map = std::unordered_map<std::string, T, string_hash, std::equal_to<>>;
+    using string_map = std::map<std::string, T, std::less<>>;
 
     string_map<macro>         m_macros;
     string_map<std::uint32_t> m_ids;
