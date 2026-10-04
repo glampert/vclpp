@@ -21,7 +21,9 @@ in an existing clone. Then:
     make        # builds the vclpp binary
     make test   # builds it and runs the tests in tests/
 
-It needs a C++17 compiler. `CXX` and `BIN_TARGET` can be set on the `make` command line.
+It needs a C++17 compiler. CI builds and tests it with GCC 9, the oldest compiler it supports,
+and with the current GCC and Apple clang. `CXX` and `BIN_TARGET` can be set on the `make`
+command line.
 
 ## Syntax
 

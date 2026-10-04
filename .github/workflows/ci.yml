@@ -1,0 +1,58 @@
+# Builds vclpp with warnings as errors, then runs its tests and parse-utils' tests.
+#
+# GCC 9 on Ubuntu 20.04 is the oldest compiler vclpp supports. The tyra engine
+# (github.com/h4570/tyra) builds vclpp with it.
+
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  gcc9:
+    name: GCC 9, Ubuntu 20.04
+    runs-on: ubuntu-latest
+    container: ubuntu:20.04
+    steps:
+      # git goes in before the checkout. Without it, the checkout downloads a
+      # snapshot of the repository, and the snapshot has no submodules.
+      - name: Install the compiler and git
+        run: |
+          apt-get update
+          DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends ca-certificates g++ git make
+      - uses: actions/checkout@v5
+        with:
+          submodules: recursive
+      - name: Compiler version
+        run: g++ --version
+      - name: Build and test vclpp
+        run: make test CXXFLAGS="-O2 -Wall -Wextra -pedantic -Werror"
+      - name: Test parse-utils
+        run: make -C external/parse-utils test
+
+  current:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: GCC, Ubuntu (latest)
+            os: ubuntu-latest
+          - name: Apple clang, macOS (latest)
+            os: macos-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          submodules: recursive
+      - name: Compiler version
+        run: g++ --version
+      - name: Build and test vclpp
+        run: make test CXXFLAGS="-O2 -Wall -Wextra -pedantic -Werror"
+      - name: Test parse-utils
+        run: make -C external/parse-utils test
