@@ -39,6 +39,9 @@ public:
 
     expander(macro_table & macros, const source_manager & sources, diagnostics & diags);
 
+    // Name{ is then plain text, not a block macro invocation, as in MASP mode.
+    void disable_block_macros() noexcept { m_block_macros = false; }
+
     // Expands a line of code. Block macros in it expand to their lines, so the result
     // can span several lines.
     std::vector<pp_token> expand_line(std::vector<pp_token> line, const line_source & more_lines);
@@ -72,6 +75,7 @@ private:
     const source_manager & m_sources;
     diagnostics &          m_diags;
     std::uint32_t          m_counter = 0; // __COUNTER__
+    bool                   m_block_macros = true;
 };
 
 } // namespace vclpp

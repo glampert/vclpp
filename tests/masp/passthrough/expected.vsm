@@ -1,0 +1,11 @@
+	.name	vsmTest
+	.init_vf_all
+	.align	4
+	.global	vsmTest_CodeStart
+	--enter
+	--endenter
+start:
+	nop
+	.equ	kX, 1
+	--exit
+	--endexit

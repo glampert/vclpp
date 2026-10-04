@@ -1,0 +1,1 @@
+input.vcl:1:1: error: .aif: a quoted string can only be compared with another one

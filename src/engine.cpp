@@ -59,6 +59,11 @@ engine::engine(const options & opts, source_manager & sources, diagnostics & dia
     , m_expander{ m_macros, sources, diags }
     , m_evaluator{ diags }
 {
+    // MASP mode has masp's macros instead, so Name{ is only text there.
+    if (opts.masp)
+    {
+        m_expander.disable_block_macros();
+    }
 }
 
 preprocessed engine::run()
@@ -70,16 +75,22 @@ preprocessed engine::run()
     {
         m_diags.error("cannot read input file '" + m_options.input_path + "'");
     }
-    enter_file(*main_file);
+
+    // In MASP mode, masp's directives are carried out first, and the lines that result
+    // come here, like masp's output going through cpp.
+    if (m_options.masp)
+    {
+        m_masp = std::make_unique<masp_reader>(*main_file, m_options.masp_settings, m_sources, m_diags, m_evaluator);
+    }
+    else
+    {
+        enter_file(*main_file);
+    }
 
     std::vector<pp_token> line;
-    while (!m_files.empty())
+    while (next_line(line))
     {
-        if (!take_line(m_files.back(), line))
-        {
-            leave_file();
-        }
-        else if (line.front().is(punct::preprocessor))
+        if (line.front().is(punct::preprocessor))
         {
             handle_directive(line);
         }
@@ -89,14 +100,25 @@ preprocessed engine::run()
         }
     }
 
-    const source_location main_location{ *main_file, 0, 0 };
-    if (!m_vuprog_at.has_value())
+    if (m_options.masp)
     {
-        m_diags.warning(main_location, "program start directive '#vuprog' was not found");
+        if (!m_conditionals.empty())
+        {
+            const conditional & open = m_conditionals.back();
+            m_diags.error(open.opened_at, "unterminated #" + open.directive + ": missing #endif");
+        }
     }
-    if (!m_endvuprog_at.has_value())
+    else
     {
-        m_diags.warning(main_location, "program end directive '#endvuprog' was not found");
+        const source_location main_location{ *main_file, 0, 0 };
+        if (!m_vuprog_at.has_value())
+        {
+            m_diags.warning(main_location, "program start directive '#vuprog' was not found");
+        }
+        if (!m_endvuprog_at.has_value())
+        {
+            m_diags.warning(main_location, "program end directive '#endvuprog' was not found");
+        }
     }
 
     return preprocessed{ std::move(m_output), std::move(m_program_name) };
@@ -108,7 +130,10 @@ preprocessed engine::run()
 
 void engine::enter_file(const std::uint32_t file_index)
 {
-    m_files.push_back(file_frame{ file_index, tokenize_file(file_index, m_sources, m_diags), 0, m_conditionals.size() });
+    // In MASP mode, files only come here through #include, which imports their macros as
+    // 'cpp -imacros' would: their other lines are C declarations, not code for VCL.
+    m_files.push_back(file_frame{ file_index, tokenize_file(file_index, m_sources, m_diags), 0, m_conditionals.size(),
+                                  m_options.masp });
 }
 
 void engine::leave_file()
@@ -139,9 +164,32 @@ bool engine::take_line(file_frame & frame, std::vector<pp_token> & line)
     return true;
 }
 
+bool engine::next_line(std::vector<pp_token> & line)
+{
+    // An #included file comes first; when there is none, MASP mode reads on from the
+    // MASP stage.
+    while (!m_files.empty())
+    {
+        if (!take_line(m_files.back(), line))
+        {
+            leave_file();
+        }
+        else if (!m_files.back().macros_only || line.front().is(punct::preprocessor))
+        {
+            return true;
+        }
+    }
+    return (m_masp != nullptr && m_masp->next_line(line));
+}
+
 bool engine::is_active() const
 {
     return m_conditionals.empty() || m_conditionals.back().active;
+}
+
+std::size_t engine::file_conditional_depth() const
+{
+    return (m_files.empty() ? 0 : m_files.back().conditional_depth);
 }
 
 void engine::process_code_line(std::vector<pp_token> & line)
@@ -150,6 +198,21 @@ void engine::process_code_line(std::vector<pp_token> & line)
     // this one - up to the end of the file, or a directive, which ends the line.
     const expander::line_source more_lines = [this](std::vector<pp_token> & next_line)
     {
+        // A code line from the MASP stage: so are the ones after it.
+        if (m_files.empty())
+        {
+            if (m_masp == nullptr || !m_masp->next_line(next_line))
+            {
+                return false;
+            }
+            if (next_line.front().is(punct::preprocessor))
+            {
+                m_masp->unget_line(std::move(next_line));
+                return false;
+            }
+            return true;
+        }
+
         file_frame & frame = m_files.back();
         if (frame.next < frame.tokens.size() && frame.tokens[frame.next].is(punct::preprocessor))
         {
@@ -198,6 +261,12 @@ void engine::handle_directive(const std::vector<pp_token> & line)
     if (!is_active())
     {
         return;
+    }
+
+    // vclpp's own macros and programs have no place among masp's.
+    if (m_options.masp && (name == "macro" || name == "endmacro" || name == "vuprog" || name == "endvuprog"))
+    {
+        m_diags.error(directive, "#" + name + " is not available in MASP mode" + (name == "macro" ? ": use .macro" : ""));
     }
 
     if      (name == "include")   { handle_include(line);     }
@@ -261,7 +330,7 @@ void engine::handle_include(const std::vector<pp_token> & line)
     }
 
     std::vector<std::filesystem::path> tried;
-    const std::optional<std::filesystem::path> path = m_sources.find_include(name, angled, m_files.back().file_index, &tried);
+    const std::optional<std::filesystem::path> path = m_sources.find_include(name, angled, line[0].location.file_index, &tried);
     if (!path.has_value())
     {
         std::vector<note> notes;
@@ -536,7 +605,7 @@ void engine::handle_pragma(const std::vector<pp_token> & line)
 {
     if (line.size() == 3 && line[2].text == "once")
     {
-        m_sources.mark_include_once(m_files.back().file_index);
+        m_sources.mark_include_once(line[0].location.file_index);
         return;
     }
     m_diags.warning(line[1], "ignoring unknown '#pragma" + rest_of_line(line, 2) + "'");
@@ -620,7 +689,7 @@ void engine::handle_endif(const std::vector<pp_token> & line)
 engine::conditional & engine::current_conditional(const pp_token & directive)
 {
     // Only one opened in this file: conditionals do not carry across files.
-    if (m_conditionals.size() <= m_files.back().conditional_depth)
+    if (m_conditionals.size() <= file_conditional_depth())
     {
         m_diags.error(directive, "#" + directive.text + " without #if");
     }

@@ -1,0 +1,1 @@
+input.vcl:4:1: error: macro 'pair' has no parameter named 'c'

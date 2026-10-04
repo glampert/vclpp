@@ -1,0 +1,2 @@
+	use	\&nope
+	.end

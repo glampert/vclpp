@@ -1,0 +1,2 @@
+	.sdata	"ab"
+	.end

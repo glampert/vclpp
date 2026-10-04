@@ -1,0 +1,4 @@
+	mulax	acc, xform_0, vertx
+	maddw	out, xform_3, vf00W
+	ilw.x	vi01, offset_1(vi00)
+	keep	list[10], spaced[ 0 ], other[q], vf01[xy]

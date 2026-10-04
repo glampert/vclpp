@@ -1,0 +1,13 @@
+	nop
+
+	nop
+	nop
+	nop
+
+	pass	0
+	pass	1
+	pass	2
+
+	big	2
+
+	small	0

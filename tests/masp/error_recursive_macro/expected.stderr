@@ -1,0 +1,10 @@
+input.vcl:3:1: error: macro expansions nested 200 levels deep: does macro 'forever' invoke itself?
+input.vcl:3:1: note: in expansion of macro 'forever'
+input.vcl:3:1: note: in expansion of macro 'forever'
+input.vcl:3:1: note: in expansion of macro 'forever'
+input.vcl:3:1: note: in expansion of macro 'forever'
+note: [192 more expansions]
+input.vcl:3:1: note: in expansion of macro 'forever'
+input.vcl:3:1: note: in expansion of macro 'forever'
+input.vcl:3:1: note: in expansion of macro 'forever'
+input.vcl:5:1: note: in expansion of macro 'forever'

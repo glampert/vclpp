@@ -1,0 +1,23 @@
+lab1:	op	p
+lab2:	op	q
+
+lab4:	op	r
+lab5:	op	dflt
+
+lab7:	op	t
+lab8:	op	s
+
+lab10:	op	u
+lab11:	op	u
+
+	p1	one, \abc, two[0], \xform_suffix
+	multwo.xyz	acc, vf00, vf00
+
+	params	1, 2, 3
+
+lab14:	op	"x, y"
+
+	inner.xyz	not_an_invocation
+
+lbl:
+lab15:	op	v

@@ -1,0 +1,5 @@
+	lq	vf01, 14(vi00)
+
+	lq	vf02, 16(vi00)
+
+	iaddiu	vi01, vi00, 168

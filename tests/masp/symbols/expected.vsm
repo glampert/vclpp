@@ -1,0 +1,8 @@
+	use	3, KA, kAx, kA_1, x.3, (3), "3"
+	use	6, _double, 7, 7
+	rep
+	rep
+	rep
+	double
+ kC	.equ	5
+	use	kC

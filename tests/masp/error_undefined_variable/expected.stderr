@@ -1,0 +1,1 @@
+input.vcl:1:1: error: MASP variable 'nope' is not defined: .assigna and .assignc define them

@@ -1,0 +1,1 @@
+input.vcl:4:1: error: argument '1' after one given by name, invoking macro 'pair': after one, all have to be

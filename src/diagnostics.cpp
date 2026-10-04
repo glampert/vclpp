@@ -16,6 +16,15 @@
 namespace vclpp
 {
 
+namespace
+{
+
+// A long chain of #includes or of macro expansions - a file that includes itself, a
+// macro that invokes itself - is shortened to this many entries at each end.
+constexpr std::size_t k_chain_ends_shown = 4;
+
+} // namespace
+
 diagnostics::diagnostics(const source_manager & sources, const bool warnings_are_errors)
     : m_sources{ sources }
     , m_warnings_are_errors{ warnings_are_errors }
@@ -84,8 +93,8 @@ void diagnostics::report(const source_location * location, const std::string_vie
 
     if (location != nullptr)
     {
-        // The chain of #includes that led to the file. A long one - a file including
-        // itself - is shortened to its two ends.
+        // The chain of #includes that led to the file. A long one is shortened to its
+        // two ends.
         std::vector<source_location> chain;
         for (auto from = m_sources.file(location->file_index).included_from; from.has_value();
              from = m_sources.file(from->file_index).included_from)
@@ -93,13 +102,12 @@ void diagnostics::report(const source_location * location, const std::string_vie
             chain.push_back(*from);
         }
 
-        constexpr std::size_t shown_at_each_end = 4;
         for (std::size_t i = 0; i < chain.size(); ++i)
         {
-            if (chain.size() > 2 * shown_at_each_end && i == shown_at_each_end)
+            if (chain.size() > 2 * k_chain_ends_shown && i == k_chain_ends_shown)
             {
-                text += ",\n                 [" + std::to_string(chain.size() - 2 * shown_at_each_end) + " more]";
-                i = chain.size() - shown_at_each_end - 1;
+                text += ",\n                 [" + std::to_string(chain.size() - 2 * k_chain_ends_shown) + " more]";
+                i = chain.size() - k_chain_ends_shown - 1;
                 continue;
             }
             text += (i == 0 ? "In file included from " : ",\n                 from ");
@@ -165,6 +173,14 @@ std::vector<note> diagnostics::expansion_notes(const pp_token & token)
     for (const expansion_origin * origin = token.origin.get(); origin != nullptr; origin = origin->parent.get())
     {
         notes.push_back(note{ origin->invoked_at, "in expansion of macro '" + origin->macro_name + "'" });
+    }
+
+    // A long chain is shortened to its two ends.
+    if (notes.size() > 2 * k_chain_ends_shown)
+    {
+        const std::size_t hidden = notes.size() - 2 * k_chain_ends_shown;
+        notes.erase(notes.begin() + k_chain_ends_shown, notes.end() - k_chain_ends_shown);
+        notes.insert(notes.begin() + k_chain_ends_shown, note{ std::nullopt, "[" + std::to_string(hidden) + " more expansions]" });
     }
     return notes;
 }

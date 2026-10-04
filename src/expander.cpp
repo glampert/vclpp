@@ -182,7 +182,7 @@ std::vector<pp_token> expander::expand(token_list & input, const line_source * m
         {
             // Name{ } in code can only be a block macro invocation. Left as it is, it
             // would only puzzle VCL.
-            if (name.is_identifier() && block_context.empty() && followed_by(punct::open_curly_bracket))
+            if (m_block_macros && name.is_identifier() && block_context.empty() && followed_by(punct::open_curly_bracket))
             {
                 m_diags.error(name, "'" + name.text + "' is not a block macro: no '#macro " + name.text + "' has been seen");
             }

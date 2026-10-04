@@ -1,0 +1,1 @@
+input.vcl:1:1: error: MASP directive '.sdata' is not supported by vclpp

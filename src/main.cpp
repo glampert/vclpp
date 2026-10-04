@@ -40,6 +40,7 @@ void print_help(const char * const program_name)
         << " With no output file, the output is the input file with its extension replaced by '.vsm'.\n"
         << " Options are:\n"
         << "  -h, --help               Prints this message and exits.\n"
+        << "  --version                Prints vclpp's version and exits.\n"
         << "  -j, --vcl-boilerplate    Adds the standard VCL prologue/epilogue to the output.\n"
         << "  -x, --fixcexpr           Replaces constant integer expressions, like 1+2, by their values.\n"
         << "  -f, --flatten-subscripts Turns name[0] into name_0 and name[x] into namex.\n"
@@ -47,8 +48,52 @@ void print_help(const char * const program_name)
         << "  -D <name>[=<value>]      Defines a macro, as '#define name value' (the value defaults to 1).\n"
         << "  -Wundef                  Warns when an #if evaluates an identifier that is not a macro.\n"
         << "  -Werror                  Treats warnings as errors.\n"
+        << "  -m, --masp               MASP mode: the input is written for masp, the GASP-compatible\n"
+        << "                           preprocessor (.macro, .aif, .include, ...). Running vclpp under\n"
+        << "                           the name masp or gasp turns it on too.\n"
+        << "\n"
+        << " In MASP mode, #include takes only a header's macros, the output goes to stdout unless\n"
+        << " an output file is given, and these masp options apply:\n"
+        << "  -o <file>                The output file.\n"
+        << "  -c <char>                Makes <char> start comments as well as ';'.\n"
+        << "  -D <name>[=<value>]      Sets the MASP variable <name>, read as \\&name.\n"
+        << "  -P <char>                The directive prefix: only '.' is supported.\n"
+        << "  -v                       Prints vclpp's version and exits.\n"
+        << "  -p, -s, -u, -l, -d       Accepted and ignored.\n"
         << "\n"
         << "Created by Guilherme R. Lampert.\n";
+}
+
+void print_version()
+{
+    std::cout << "vclpp 2, with a MASP mode that stands in for masp 0.1.16\n";
+}
+
+// Whether to run in MASP mode: -m says so, and so does running vclpp under masp's or
+// GASP's name (e.g. "masp", or "ee-gasp" with a toolchain prefix), as a drop-in for them.
+bool wants_masp_mode(const int argc, const char * const argv[])
+{
+    const std::string program = std::filesystem::path{ argv[0] }.stem().string();
+    for (const std::string name : { "masp", "gasp" })
+    {
+        const std::string prefixed = "-" + name;
+        const bool has_prefix = (program.size() > prefixed.size() &&
+                                 program.compare(program.size() - prefixed.size(), prefixed.size(), prefixed) == 0);
+        if (program == name || has_prefix)
+        {
+            return true;
+        }
+    }
+
+    for (int i = 1; i < argc; ++i)
+    {
+        const std::string_view arg = argv[i];
+        if (arg == "-m" || arg == "--masp")
+        {
+            return true;
+        }
+    }
+    return false;
 }
 
 int command_line_error(const std::string & message)
@@ -82,18 +127,25 @@ bool is_identifier(const std::string_view text)
 // right away, after printing the help or an error, or nothing to carry on.
 std::optional<int> parse_command_line(const int argc, const char * const argv[], vclpp::options & opts)
 {
+    // masp's options only exist in MASP mode, so that comes first.
+    opts.masp = wants_masp_mode(argc, argv);
+
     std::vector<std::string> file_names;
+    std::optional<std::string> output_option; // MASP mode's -o.
 
     for (int i = 1; i < argc; ++i)
     {
         const std::string_view arg = argv[i];
 
-        // The value of -I or -D, either attached ("-Idir") or the next argument ("-I dir").
+        // An option's value: attached ("-Idir"), the next argument ("-I dir"), or for a long
+        // option after '=' ("--output=file").
         const auto option_value = [&](const std::string_view option) -> std::optional<std::string>
         {
             if (arg.size() > option.size())
             {
-                return std::string{ arg.substr(option.size()) };
+                const std::string_view attached = arg.substr(option.size());
+                const bool long_option = (option.size() > 2);
+                return std::string{ long_option && attached.front() == '=' ? attached.substr(1) : attached };
             }
             if (i + 1 < argc)
             {
@@ -101,11 +153,26 @@ std::optional<int> parse_command_line(const int argc, const char * const argv[],
             }
             return std::nullopt;
         };
+        const auto is_option = [arg](const std::string_view short_name, const std::string_view long_name)
+        {
+            return arg.substr(0, short_name.size()) == short_name ||
+                   (arg.substr(0, long_name.size()) == long_name &&
+                    (arg.size() == long_name.size() || arg[long_name.size()] == '='));
+        };
 
         if (arg == "-h" || arg == "--help")
         {
             print_help(argv[0]);
             return EXIT_SUCCESS;
+        }
+        else if (arg == "--version" || (opts.masp && arg == "-v"))
+        {
+            print_version();
+            return EXIT_SUCCESS;
+        }
+        else if (arg == "-m" || arg == "--masp")
+        {
+            // Already seen.
         }
         else if (arg == "-j" || arg == "--vcl-boilerplate")
         {
@@ -118,6 +185,37 @@ std::optional<int> parse_command_line(const int argc, const char * const argv[],
         else if (arg == "-f" || arg == "--flatten-subscripts")
         {
             opts.flatten_subscripts = true;
+        }
+        else if (opts.masp && is_option("-c", "--commentchar"))
+        {
+            const std::optional<std::string> chars = option_value(arg.substr(0, 2) == "-c" ? "-c" : "--commentchar");
+            if (!chars.has_value() || chars->size() != 1)
+            {
+                return command_line_error("-c needs one comment character");
+            }
+            opts.masp_settings.comment_chars += *chars;
+        }
+        else if (opts.masp && is_option("-o", "--output"))
+        {
+            output_option = option_value(arg.substr(0, 2) == "-o" ? "-o" : "--output");
+            if (!output_option.has_value() || output_option->empty())
+            {
+                return command_line_error("-o needs a file name");
+            }
+        }
+        else if (opts.masp && is_option("-P", "--prefixchar"))
+        {
+            const std::optional<std::string> prefix = option_value(arg.substr(0, 2) == "-P" ? "-P" : "--prefixchar");
+            if (prefix != std::optional<std::string>{ "." })
+            {
+                return command_line_error("-P: '.' is the only directive prefix vclpp supports");
+            }
+        }
+        else if (opts.masp && (arg == "-p" || arg == "--print" || arg == "-s" || arg == "--copysource" ||
+                               arg == "-u" || arg == "--unreasonable" || arg == "-l" || arg == "--line-numbers" ||
+                               arg == "-d" || arg == "--debug"))
+        {
+            // masp's listing and debugging options: they do not change the code.
         }
         else if (arg == "-Wundef")
         {
@@ -148,6 +246,17 @@ std::optional<int> parse_command_line(const int argc, const char * const argv[],
             std::string name  = definition->substr(0, equals);
             std::string value = (equals == std::string::npos ? std::string{ "1" } : definition->substr(equals + 1));
 
+            // In MASP mode, as in masp, -D sets a variable rather than a macro.
+            if (opts.masp)
+            {
+                if (!is_identifier(name))
+                {
+                    return command_line_error("cannot set '" + name + "' with -D");
+                }
+                opts.masp_settings.variables.emplace_back(std::move(name), std::move(value));
+                continue;
+            }
+
             if (!is_identifier(name) || name == "defined" || vclpp::macro_table::is_builtin_name(name))
             {
                 return command_line_error("cannot define '" + name + "' with -D");
@@ -173,10 +282,20 @@ std::optional<int> parse_command_line(const int argc, const char * const argv[],
     {
         return command_line_error("unexpected file name '" + file_names[2] + "': only an input and an output are taken");
     }
+    if (output_option.has_value() && file_names.size() > 1)
+    {
+        return command_line_error("two output files: '" + *output_option + "' and '" + file_names[1] + "'");
+    }
 
-    opts.input_path  = file_names[0];
-    opts.output_path = (file_names.size() > 1 ? file_names[1]
-                                              : std::filesystem::path{ file_names[0] }.replace_extension(".vsm").string());
+    opts.input_path = file_names[0];
+    if (file_names.size() > 1 || output_option.has_value())
+    {
+        opts.output_path = (output_option.has_value() ? *output_option : file_names[1]);
+    }
+    else if (!opts.masp) // MASP mode writes to stdout, as masp does.
+    {
+        opts.output_path = std::filesystem::path{ file_names[0] }.replace_extension(".vsm").string();
+    }
     return std::nullopt;
 }
 
@@ -206,6 +325,16 @@ int main(const int argc, const char * argv[])
         if (diags.failed())
         {
             return EXIT_FAILURE;
+        }
+
+        if (opts.output_path.empty())
+        {
+            std::cout << text << std::flush;
+            if (!std::cout)
+            {
+                diags.error("cannot write the output to stdout");
+            }
+            return EXIT_SUCCESS;
         }
 
         std::ofstream file{ opts.output_path, std::ios::binary };

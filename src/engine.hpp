@@ -13,9 +13,11 @@
 #include "expander.hpp"
 #include "expressions.hpp"
 #include "macro_table.hpp"
+#include "masp.hpp"
 #include "tokenizer.hpp"
 
 #include <cstdint>
+#include <memory>
 #include <optional>
 #include <string>
 #include <unordered_map>
@@ -31,7 +33,7 @@ class source_manager;
 struct options final
 {
     std::string                                      input_path;
-    std::string                                      output_path;
+    std::string                                      output_path;             // Empty for stdout.
     bool                                             vcl_boilerplate = false; // -j
     bool                                             fold_constants  = false; // -x
     bool                                             flatten_subscripts = false; // -f
@@ -39,6 +41,8 @@ struct options final
     bool                                             werror          = false; // -Werror
     std::vector<std::string>                         include_dirs;            // -I
     std::vector<std::pair<std::string, std::string>> defines;                 // -D name=value
+    bool                                             masp = false;            // -m: MASP mode.
+    masp_options                                     masp_settings;           // -c and MASP mode's -D.
 };
 
 struct preprocessed final
@@ -62,6 +66,7 @@ private:
         std::vector<pp_token> tokens;
         std::size_t           next;              // The next token to read.
         std::size_t           conditional_depth; // m_conditionals.size() when the file was entered.
+        bool                  macros_only;       // Only its directives count (MASP mode's #include).
     };
 
     // An #if/#ifdef/#ifndef and the #elif/#else that follow it.
@@ -79,7 +84,9 @@ private:
     void enter_file(std::uint32_t file_index);
     void leave_file();
     static bool take_line(file_frame & frame, std::vector<pp_token> & line);
+    bool next_line(std::vector<pp_token> & line);
     bool is_active() const;
+    std::size_t file_conditional_depth() const;
     void process_code_line(std::vector<pp_token> & line);
 
     // Directives.
@@ -113,6 +120,7 @@ private:
     expander                                         m_expander;
     expression_evaluator                             m_evaluator;
     std::vector<file_frame>                          m_files;
+    std::unique_ptr<masp_reader>                     m_masp;         // MASP mode: the main file's lines.
     std::vector<conditional>                         m_conditionals;
     std::vector<pp_token>                            m_output;
     std::unordered_map<std::string, source_location> m_used_undefined; // Identifiers left in the code, where first seen.

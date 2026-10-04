@@ -1,0 +1,13 @@
+	empty
+
+	differs	a
+
+	same	a
+
+	c_precedence
+	lt
+	le
+	gt
+	ge_else
+	text_is_case_sensitive
+	outer_else

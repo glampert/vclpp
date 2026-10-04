@@ -115,6 +115,7 @@ Usage:
  With no output file, the output is the input file with its extension replaced by '.vsm'.
  Options are:
   -h, --help               Prints this message and exits.
+  --version                Prints vclpp's version and exits.
   -j, --vcl-boilerplate    Adds the standard VCL prologue/epilogue to the output.
   -x, --fixcexpr           Replaces constant integer expressions, like 1+2, by their values.
   -f, --flatten-subscripts Turns name[0] into name_0 and name[x] into namex.
@@ -122,6 +123,18 @@ Usage:
   -D &lt;name&gt;[=&lt;value&gt;]      Defines a macro, as '#define name value' (the value defaults to 1).
   -Wundef                  Warns when an #if evaluates an identifier that is not a macro.
   -Werror                  Treats warnings as errors.
+  -m, --masp               MASP mode: the input is written for masp, the GASP-compatible
+                           preprocessor (.macro, .aif, .include, ...). Running vclpp under
+                           the name masp or gasp turns it on too.
+
+ In MASP mode, #include takes only a header's macros, the output goes to stdout unless
+ an output file is given, and these masp options apply:
+  -o &lt;file&gt;                The output file.
+  -c &lt;char&gt;                Makes &lt;char&gt; start comments as well as ';'.
+  -D &lt;name&gt;[=&lt;value&gt;]      Sets the MASP variable &lt;name&gt;, read as \&amp;name.
+  -P &lt;char&gt;                The directive prefix: only '.' is supported.
+  -v                       Prints vclpp's version and exits.
+  -p, -s, -u, -l, -d       Accepted and ignored.
 </pre>
 
 Providing the `-j` or `--vcl-boilerplate` flag will cause the tool to add the frequently used
@@ -158,6 +171,178 @@ Errors and warnings are reported GCC-style, as `file:line:column: error: message
 chain of `#include`s that led to the file and before the chain of macro invocations that led
 to the code, if any. An error stops the run without
 writing the output file; so do warnings, with `-Werror`, once all of them have been reported.
+
+## MASP Mode
+
+With `-m` or `--masp`, VCLPP preprocesses sources written for masp, the GASP-compatible
+assembler preprocessor that classic PS2 VU code was written for, such as the microcode of
+[ps2gl](https://github.com/ps2dev/ps2gl). Running VCLPP under the name `masp` or `gasp`, e.g.
+through a symlink, turns MASP mode on as well; so does a prefixed name like `ee-gasp`. That lets
+VCLPP stand in for either in an existing build.
+
+MASP mode does what masp does, then runs the C preprocessor over the result, as a build would
+run cpp over masp's output. On ps2gl's VU programs, its output is masp's, apart from whitespace
+and comments.
+
+### Running it
+
+    $ vclpp -m [options] <input-file> [output-file]
+
+As with masp, the output goes to stdout unless a file is given, as the second file name or with
+`-o`. masp's own options are taken too:
+
+    -o <file>             The output file.
+    -c <char>             Makes <char> start comments, as well as ';'.
+    -I <dir>              Adds a directory to look for .include and #include files in.
+    -D <name>[=<value>]   Sets the MASP variable <name>, read as \&name. Outside MASP
+                          mode, -D defines a C macro instead.
+    -P <char>             The directive prefix: only '.' is supported.
+    -v                    Prints the version.
+    -p, -s, -u, -l, -d    Accepted and ignored: they only change masp's listing output.
+
+`-x`, `-f`, `-Wundef` and `-Werror` work as in standard mode.
+
+A build made with ps2stuff's `Makefile.work` runs masp or GASP as `$(APP)`, so it can run
+VCLPP instead with
+
+    make APP="vclpp -m"
+
+or through a symlink named `masp` or `gasp`. The code the build assembles then comes out the
+same, byte for byte, as with masp: that has been checked on all of ps2gl's VU programs.
+
+That build also runs `sed` before and after masp, and cpp after VCL. VCLPP can do their work as
+well, so that openvcl can take its output directly:
+
+    vclpp -m -x -f -I vu1 vu1/general.vcl general_pp.vcl
+    openvcl -o general.vsm general_pp.vcl
+
+`#include` takes the C headers' macros, `-x` turns the constants they define into numbers, and
+`-f` writes subscripts the way openvcl wants them. With the actual addresses to hand, openvcl
+can tell more memory accesses apart, so its code can come out shorter than through cpp.
+
+### Lines, comments and labels
+
+    ; A comment. So are // and /* */ ones.
+    loop:   iaddi   vi01, vi01, -1          ; A label, in column 1.
+            iaddiu  vi02, vi00,
+    +               kOffset                 ; A '+' in column 1 continues the line before.
+
+A name in column 1 is a label. masp lets it go without its colon, and VCLPP then adds one, as
+masp does. Code and directives are indented, so that they are not taken for labels. Comments
+and blank lines are left out of the output.
+
+### Macros
+
+    .macro  dot3    output, vec1, vec2, op=mul
+            \op.xyz    \output, \vec1, \vec2
+    .endm
+
+            dot3    vf01, vf02, vf03            ; mul.xyz vf01, vf02, vf03
+            dot3    vf01, vf02, vf03, op=add    ; add.xyz vf01, vf02, vf03
+
+A macro is invoked by its name, followed by a space or the end of the line, and then its
+arguments, separated by commas; quotes keep a comma inside an argument. Macro names ignore case,
+but parameter names do not. A parameter can have a default value, and an argument can name the
+parameter it is for, as `op=add` does; after one argument given by name, the rest have to be
+too. A missing argument takes its parameter's default, or is empty. `dot3 .macro output, ...`,
+with the name in column 1, defines a macro too.
+
+In the body, `\name` is replaced by the argument wherever it appears, even inside a word. The
+name is the longest one after the backslash, and one that is not a parameter's is left as
+written. `\@` is the number of macro expansions before this one, counting from 0, which gives
+each expansion labels of its own:
+
+    .macro  wait_for    flag
+    wait\@: ibeq        \flag, vi00, wait\@
+    .endm
+
+The lines of an expansion are read again, so they can invoke other macros, including one that a
+parameter names, and use any directive. `.exitm` ends an expansion early. A macro can invoke
+itself, as long as an `.aif` stops it; expansions nest up to 200 deep. A macro defined again
+replaces the one before.
+
+### Conditionals
+
+    .aif    "\ones" EQ ""
+            dot3    intensity, light, normal
+    .aelse
+            dot4    intensity, light, normal, \ones
+    .aendi
+
+`.aif` compares two operands with `EQ`, `NE`, `LT`, `LE`, `GT` or `GE`, in any case. Two quoted
+strings compare as text, which is case-sensitive; anything else is an integer expression, with
+C's operators and precedence. An `.aif` with no comparison holds if its expression is not 0.
+Conditionals nest, and one opened in a file or a macro has to be closed there.
+
+### Loops
+
+            .arepeat    \count-1
+            iadd        vi01, vi01, vi02
+            .aendr
+
+    i       .assigna    0
+            .awhile     \&i LT 4
+            lq          vf1\&i, \&i(vi00)
+    i       .assigna    \&i+1
+            .aendw
+
+`.arepeat` repeats its lines a number of times, and `.awhile` while its condition holds, which
+is evaluated again before each pass. Either stops after 100000 passes.
+
+### Variables
+
+    _out_buffer  .assignc  "_double"
+    count        .assigna  2 * 3
+
+`.assignc` gives a variable some text, without the quotes around it, and `.assigna` the value of
+an integer expression. `\&name` is replaced by the variable's value anywhere, in macros or out.
+The name goes in column 1, and is case-sensitive.
+
+### Constants
+
+    kInputQPerV  .equ  3
+
+`.equ` gives a name the value of an integer expression, worked out where it is defined. From
+then on, the name is replaced by its value wherever it appears as a whole word: in directives
+too, and even inside quotes, as masp does. Names are case-sensitive. An indented `.equ` is not
+masp's, and passes through to VCL.
+
+### Include files and the end
+
+    .include  "math.i"
+
+`.include` looks for the file next to the file that includes it, then in the `-I` directories,
+then in the working directory; masp only looks in the last two. `.end` ends the program, even in
+an included file. VCLPP warns if the program has no `.end`, as masp does.
+
+### Other directives
+
+Directives that are not masp's pass through, as code does: VCL's `.name`, `.init_vf_all` and
+`--enter`, for example, or `.align`. GASP's data and listing directives, which masp turns into
+other assembler directives, are errors: `.data`, `.datab`, `.sdata`, `.sdatab`, `.sdataz`,
+`.sdatac`, `.res`, `.sres`, `.sresc`, `.sresz`, `.print`, `.heading`, `.page`, `.form`, `.org`,
+`.radix`, `.alternate`, `.program`, `.export` and `.assign`.
+
+### C directives
+
+Lines that start with `#` are C directives. They are carried out on masp's output, in order, as
+cpp would. `#include` takes only a header's macros, as `cpp -imacros` does: VU code shares its
+headers with C code, whose declarations are not code for VCL. `#define`, `#undef` and `#if` work
+as in standard mode, and C macros expand in the code. VCLPP's own `#macro`, `Name{ }` and
+`#vuprog` are not available in MASP mode.
+
+### Differences from masp
+
+- A label on a line that invokes a macro stays, on a line of its own. masp drops it.
+- A macro's name has to be followed by a space or the end of the line. masp also takes
+  `name.xyz` as invoking `name`, with `.xyz` as its first argument.
+- `.align` passes through to VCL. masp turns `.align 4` into a bare `4`.
+- A comment on a `.macro` line is allowed. masp reads it as more parameters.
+- `;` always starts a comment, even when `-c` adds another character.
+- The output keeps each line's indentation, and leaves out comments, `//` and `/* */` ones
+  included, and blank lines. masp indents every line with a tab, and copies comments through.
+- An error, like too many arguments for a macro, stops the run. masp reports some of them and
+  carries on.
 
 ## Upgrading from VCLPP 1
 
