@@ -14,6 +14,7 @@
 #include <cstdint>
 #include <memory>
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace vclpp
@@ -81,6 +82,12 @@ struct pp_token final
 // whitespace before it; comments are dropped. A '\' that ends a line joins it to the
 // next one. Lexical errors are reported through 'diags'.
 std::vector<pp_token> tokenize_file(std::uint32_t file_index, const source_manager & sources, diagnostics & diags);
+
+// Splits text from some point in a file into tokens, as tokenize_file() does: 'where' is
+// the location of its first line, and each token's location is in that file, with its
+// column counted in 'text'. The tokens come out of the expansion 'origin', if any.
+std::vector<pp_token> tokenize_text(std::string_view text, const source_location & where,
+                                    const std::shared_ptr<const expansion_origin> & origin, diagnostics & diags);
 
 // Lexes text that must be exactly one token, e.g. the result of a ## paste. Fills in the
 // token's kind and text only. Returns false if the text is not a single valid token.

@@ -144,44 +144,80 @@ void join_spliced_lines(std::vector<pp_token> & tokens)
     tokens = std::move(joined);
 }
 
+// The lexing behind tokenize_file() and tokenize_text(). The lexer counts lines from 1 in
+// 'text'; the tokens' locations are in file 'file_index', 'line_offset' lines further down.
+void lex_tokens(const std::string & text, const std::string & display_name, const std::uint32_t file_index,
+                const std::uint32_t line_offset, std::vector<pp_token> & tokens)
+{
+    lexer lex;
+    lex.init_from_memory(text.c_str(), static_cast<std::uint32_t>(text.size()), display_name, k_lexer_flags);
+
+    lexer::token tok;
+    while (lex.next_token(&tok))
+    {
+        const std::size_t gap_begin = lex.get_last_whitespace_start();
+        const std::size_t begin     = lex.get_last_whitespace_end();
+        const std::size_t end       = lex.get_script_offset();
+
+        gap_layout gap = read_gap(std::string_view{ text }.substr(gap_begin, begin - gap_begin));
+
+        pp_token & t  = tokens.emplace_back();
+        t.kind        = kind_of(tok);
+        t.punct       = punctuation_of(tok);
+        t.is_float    = tok.is_float();
+        t.starts_line = (tokens.size() == 1 || gap.line_break);
+        t.text.assign(text, begin, end - begin);
+        t.leading     = std::move(gap.leading);
+        t.location    = source_location{ file_index, tok.get_line_number() + line_offset, column_of(text, begin) };
+    }
+}
+
 } // namespace
 
 std::vector<pp_token> tokenize_file(const std::uint32_t file_index, const source_manager & sources, diagnostics & diags)
 {
     const source_file & file = sources.file(file_index);
-    const std::string & text = file.text;
     std::vector<pp_token> tokens;
 
     const parse_utils_diagnostics_scope scope{ diags, file_index };
     try
     {
-        lexer lex;
-        lex.init_from_memory(text.c_str(), static_cast<std::uint32_t>(text.size()), file.display_name, k_lexer_flags);
-
-        lexer::token tok;
-        while (lex.next_token(&tok))
-        {
-            const std::size_t gap_begin = lex.get_last_whitespace_start();
-            const std::size_t begin     = lex.get_last_whitespace_end();
-            const std::size_t end       = lex.get_script_offset();
-
-            gap_layout gap = read_gap(std::string_view{ text }.substr(gap_begin, begin - gap_begin));
-
-            pp_token & t  = tokens.emplace_back();
-            t.kind        = kind_of(tok);
-            t.punct       = punctuation_of(tok);
-            t.is_float    = tok.is_float();
-            t.starts_line = (tokens.size() == 1 || gap.line_break);
-            t.text.assign(text, begin, end - begin);
-            t.leading     = std::move(gap.leading);
-            t.location    = source_location{ file_index, tok.get_line_number(), column_of(text, begin) };
-        }
+        lex_tokens(file.text, file.display_name, file_index, 0, tokens);
     }
     catch (const parse_utils_error & error)
     {
         diags.error(source_location{ file_index, error.line, 0 }, error.message);
     }
 
+    join_spliced_lines(tokens);
+    return tokens;
+}
+
+std::vector<pp_token> tokenize_text(const std::string_view text, const source_location & where,
+                                    const std::shared_ptr<const expansion_origin> & origin, diagnostics & diags)
+{
+    const std::uint32_t line_offset = (where.line > 0 ? where.line - 1 : 0);
+    std::vector<pp_token> tokens;
+
+    // Warnings are reported where the text came from; so are errors, through a token
+    // that carries 'origin', so that they show the expansion chain too.
+    const parse_utils_diagnostics_scope scope{ diags, where };
+    try
+    {
+        lex_tokens(std::string{ text }, std::string{}, where.file_index, line_offset, tokens);
+    }
+    catch (const parse_utils_error & error)
+    {
+        pp_token at;
+        at.location = source_location{ where.file_index, error.line + line_offset, 0 };
+        at.origin   = origin;
+        diags.error(at, error.message);
+    }
+
+    for (pp_token & token : tokens)
+    {
+        token.origin = origin;
+    }
     join_spliced_lines(tokens);
     return tokens;
 }
