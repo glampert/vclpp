@@ -54,6 +54,53 @@ bool ends_with_blank_line(const std::string & text)
     return (text.size() >= 2 && text.compare(text.size() - 2, 2, "\n\n") == 0) || text == "\n";
 }
 
+// -f: each subscript of one digit or one of w, x, y and z, written with no spaces inside
+// the brackets, becomes a suffix. name[0] turns into name_0 and name[x] into namex, as
+// the sed did that ps2stuff's build ran on masp's output: s/\[\([0-9]\)\]/_\1/g and
+// s/\[\([w-zW-Z]\)\]/\1/g.
+void flatten_subscripts(std::vector<pp_token> & line)
+{
+    std::vector<pp_token> flat;
+    flat.reserve(line.size());
+
+    for (std::size_t i = 0; i < line.size(); ++i)
+    {
+        if (i + 2 < line.size() && line[i].is(lexer::punctuation_id::open_bracket) &&
+            line[i + 1].leading.empty() && line[i + 2].leading.empty() &&
+            line[i + 2].is(lexer::punctuation_id::close_bracket) && line[i + 1].text.size() == 1)
+        {
+            const pp_token & inside = line[i + 1];
+            const char c = inside.text.front();
+
+            std::string suffix;
+            if (inside.kind == token_kind::number && c >= '0' && c <= '9')
+            {
+                suffix = std::string{ "_" } + c;
+            }
+            else if (inside.is_identifier() && std::string_view{ "wxyzWXYZ" }.find(c) != std::string_view::npos)
+            {
+                suffix = std::string{ c };
+            }
+
+            if (!suffix.empty())
+            {
+                // The suffix keeps the '['s place, and the ']'s blank line after.
+                pp_token token    = std::move(line[i]);
+                token.kind        = token_kind::identifier;
+                token.punct       = lexer::punctuation_id::none;
+                token.text        = std::move(suffix);
+                token.blank_after = (token.blank_after || line[i + 2].blank_after);
+                flat.push_back(std::move(token));
+                i += 2;
+                continue;
+            }
+        }
+        flat.push_back(std::move(line[i]));
+    }
+
+    line = std::move(flat);
+}
+
 } // namespace
 
 std::string write_output(std::vector<pp_token> tokens, const std::string & program_name,
@@ -85,6 +132,10 @@ std::string write_output(std::vector<pp_token> tokens, const std::string & progr
         if (opts.fold_constants)
         {
             fold_constant_expressions(line, evaluator);
+        }
+        if (opts.flatten_subscripts)
+        {
+            flatten_subscripts(line);
         }
 
         if ((blank_line_pending || line.front().blank_before) && !text.empty() && !ends_with_blank_line(text))

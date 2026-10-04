@@ -114,13 +114,14 @@ Usage:
  #pragma once, it supports #macro blocks and #vuprog/#endvuprog programs.
  With no output file, the output is the input file with its extension replaced by '.vsm'.
  Options are:
-  -h, --help             Prints this message and exits.
-  -j, --vcl-boilerplate  Adds the standard VCL prologue/epilogue to the output.
-  -x, --fixcexpr         Replaces constant integer expressions, like 1+2, by their values.
-  -I &lt;dir&gt;               Adds a directory to look for #include files in.
-  -D &lt;name&gt;[=&lt;value&gt;]    Defines a macro, as '#define name value' (the value defaults to 1).
-  -Wundef                Warns when an #if evaluates an identifier that is not a macro.
-  -Werror                Treats warnings as errors.
+  -h, --help               Prints this message and exits.
+  -j, --vcl-boilerplate    Adds the standard VCL prologue/epilogue to the output.
+  -x, --fixcexpr           Replaces constant integer expressions, like 1+2, by their values.
+  -f, --flatten-subscripts Turns name[0] into name_0 and name[x] into namex.
+  -I &lt;dir&gt;                 Adds a directory to look for #include files in.
+  -D &lt;name&gt;[=&lt;value&gt;]      Defines a macro, as '#define name value' (the value defaults to 1).
+  -Wundef                  Warns when an #if evaluates an identifier that is not a macro.
+  -Werror                  Treats warnings as errors.
 </pre>
 
 Providing the `-j` or `--vcl-boilerplate` flag will cause the tool to add the frequently used
@@ -147,6 +148,11 @@ VI01 is left out of `.init_vi` because the clipping instructions use it directly
 With `-x`, an integer constant expression is replaced by its value where it stands on its own,
 so `1010 + 0(vi00)` becomes `1010(vi00)`; one that an operator next to it would take part in,
 like the `1 - 2` in `a - 1 - 2`, is left alone.
+
+With `-f` or `--flatten-subscripts`, a subscript of one digit, or one of `w`, `x`, `y` and `z`,
+becomes a suffix: `matrix[0]` turns into `matrix_0`, and `vf01[x]` into `vf01x`. That is what
+ps2stuff's build did with sed after masp, for the VCL of its day, and openvcl still needs it
+for code written that way, like ps2gl's.
 
 Errors and warnings are reported GCC-style, as `file:line:column: error: message`, after the
 chain of `#include`s that led to the file and before the chain of macro invocations that led

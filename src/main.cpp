@@ -39,13 +39,14 @@ void print_help(const char * const program_name)
         << " #pragma once, it supports #macro blocks and #vuprog/#endvuprog programs.\n"
         << " With no output file, the output is the input file with its extension replaced by '.vsm'.\n"
         << " Options are:\n"
-        << "  -h, --help             Prints this message and exits.\n"
-        << "  -j, --vcl-boilerplate  Adds the standard VCL prologue/epilogue to the output.\n"
-        << "  -x, --fixcexpr         Replaces constant integer expressions, like 1+2, by their values.\n"
-        << "  -I <dir>               Adds a directory to look for #include files in.\n"
-        << "  -D <name>[=<value>]    Defines a macro, as '#define name value' (the value defaults to 1).\n"
-        << "  -Wundef                Warns when an #if evaluates an identifier that is not a macro.\n"
-        << "  -Werror                Treats warnings as errors.\n"
+        << "  -h, --help               Prints this message and exits.\n"
+        << "  -j, --vcl-boilerplate    Adds the standard VCL prologue/epilogue to the output.\n"
+        << "  -x, --fixcexpr           Replaces constant integer expressions, like 1+2, by their values.\n"
+        << "  -f, --flatten-subscripts Turns name[0] into name_0 and name[x] into namex.\n"
+        << "  -I <dir>                 Adds a directory to look for #include files in.\n"
+        << "  -D <name>[=<value>]      Defines a macro, as '#define name value' (the value defaults to 1).\n"
+        << "  -Wundef                  Warns when an #if evaluates an identifier that is not a macro.\n"
+        << "  -Werror                  Treats warnings as errors.\n"
         << "\n"
         << "Created by Guilherme R. Lampert.\n";
 }
@@ -113,6 +114,10 @@ std::optional<int> parse_command_line(const int argc, const char * const argv[],
         else if (arg == "-x" || arg == "--fixcexpr")
         {
             opts.fold_constants = true;
+        }
+        else if (arg == "-f" || arg == "--flatten-subscripts")
+        {
+            opts.flatten_subscripts = true;
         }
         else if (arg == "-Wundef")
         {
@@ -194,9 +199,8 @@ int main(const int argc, const char * argv[])
         vclpp::preprocessed result = engine.run();
 
         vclpp::expression_evaluator evaluator{ diags };
-        const std::string text = vclpp::write_output(std::move(result.tokens), result.program_name,
-                                                     vclpp::output_options{ opts.vcl_boilerplate, opts.fold_constants },
-                                                     evaluator);
+        const vclpp::output_options output{ opts.vcl_boilerplate, opts.fold_constants, opts.flatten_subscripts };
+        const std::string text = vclpp::write_output(std::move(result.tokens), result.program_name, output, evaluator);
 
         // Warnings as errors fail the run, once all of them have been reported.
         if (diags.failed())

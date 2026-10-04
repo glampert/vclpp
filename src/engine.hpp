@@ -34,6 +34,7 @@ struct options final
     std::string                                      output_path;
     bool                                             vcl_boilerplate = false; // -j
     bool                                             fold_constants  = false; // -x
+    bool                                             flatten_subscripts = false; // -f
     bool                                             warn_undef      = false; // -Wundef
     bool                                             werror          = false; // -Werror
     std::vector<std::string>                         include_dirs;            // -I

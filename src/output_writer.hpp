@@ -22,8 +22,9 @@ class expression_evaluator;
 
 struct output_options final
 {
-    bool vcl_boilerplate = false; // -j: the .init_* directives and the --enter/--exit blocks.
-    bool fold_constants  = false; // -x: replace constant expressions by their values.
+    bool vcl_boilerplate    = false; // -j: the .init_* directives and the --enter/--exit blocks.
+    bool fold_constants     = false; // -x: replace constant expressions by their values.
+    bool flatten_subscripts = false; // -f: name[0] becomes name_0 and name[x] namex.
 };
 
 // Writes the code out as text. Each line keeps the indentation and spacing it was written

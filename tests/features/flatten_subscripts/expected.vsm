@@ -1,0 +1,4 @@
+
+.name VU1Prog_Flatten
+    mulax  acc, xform_0, vertx
+    maddw  out, xform_3, vf00w
